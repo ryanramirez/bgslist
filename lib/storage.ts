@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, UploadMetadata } from 'firebase/storage';
 import { storage } from './firebase';
 
 /**
@@ -12,15 +12,25 @@ export const uploadImage = async (file: File, path: string): Promise<string> => 
     // Create a reference to the storage location
     const storageRef = ref(storage, path);
     
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
+    // Set metadata to handle CORS issues
+    const metadata: UploadMetadata = {
+      contentType: file.type,
+      customMetadata: {
+        'firebaseStorageDownloadTokens': crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
+      }
+    };
+    
+    // Upload the file with metadata
+    const snapshot = await uploadBytes(storageRef, file, metadata);
     
     // Get the download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
     
+    console.log('File uploaded successfully. Download URL:', downloadURL);
     return downloadURL;
   } catch (error) {
     console.error('Error uploading image:', error);
+    console.error('Error details:', JSON.stringify(error));
     throw error;
   }
 };

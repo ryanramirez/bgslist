@@ -103,17 +103,22 @@ export default function CreateListing() {
       // Ensure location is set
       const listingLocation = userLocation || 'Unknown location';
       
-      const listingData = {
+      // Create base listing data without price
+      const listingData: any = {
         userId: user.uid,
         title,
         description,
         condition,
-        price: price ? parseFloat(price) : undefined,
         tradeOnly,
         imageUrl: finalImageUrl,
         location: listingLocation,
         type
       };
+      
+      // Add price only if it exists
+      if (price) {
+        listingData.price = parseFloat(price);
+      }
       
       addDebug(`Creating listing with data: ${JSON.stringify(listingData)}`);
       const listingId = await createGameListing(listingData);

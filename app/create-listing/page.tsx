@@ -53,6 +53,9 @@ export default function CreateListing() {
 
   const handleImageChange = (file: File) => {
     setImageFile(file);
+    // Create a temporary object URL for preview
+    const objectUrl = URL.createObjectURL(file);
+    setImageUrl(objectUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

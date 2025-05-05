@@ -71,6 +71,7 @@ try {
   console.log('Initializing Storage...');
   storage = getStorage(app);
   console.log('Storage initialized successfully');
+  console.log('Storage bucket name:', storage.app.options.storageBucket);
 } catch (error) {
   console.error('Error initializing Firebase:', error);
   throw new Error(`Firebase initialization failed: ${error instanceof Error ? error.message : String(error)}`);

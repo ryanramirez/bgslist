@@ -25,6 +25,7 @@ export default function CreateListing() {
   const [userLocation, setUserLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState<string[]>([]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -40,22 +41,35 @@ export default function CreateListing() {
       
       try {
         const profile = await getUserProfile(user.uid);
+        addDebug(`Fetched user profile: ${profile ? 'success' : 'not found'}`);
         if (profile && profile.location) {
           setUserLocation(profile.location);
+          addDebug(`User location set to: ${profile.location}`);
+        } else {
+          // Set default location if none found
+          setUserLocation('Unknown location');
+          addDebug('User location not found, setting default');
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
+        addDebug(`Error fetching profile: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
     
     fetchUserProfile();
   }, [user]);
 
+  const addDebug = (message: string) => {
+    console.log(`DEBUG: ${message}`);
+    setDebug(prev => [...prev, message]);
+  };
+
   const handleImageChange = (file: File) => {
     setImageFile(file);
     // Create a temporary object URL for preview
     const objectUrl = URL.createObjectURL(file);
     setImageUrl(objectUrl);
+    addDebug(`Image selected: ${file.name}, size: ${Math.round(file.size / 1024)}KB`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,13 +82,26 @@ export default function CreateListing() {
     
     setIsSubmitting(true);
     setError('');
+    addDebug('Starting submission process...');
     
     try {
       // Upload image if one was selected
       let finalImageUrl = imageUrl;
       if (imageFile) {
-        finalImageUrl = await uploadGameImage(imageFile, user.uid);
+        addDebug('Uploading image to Firebase Storage...');
+        try {
+          finalImageUrl = await uploadGameImage(imageFile, user.uid);
+          addDebug(`Image uploaded successfully: ${finalImageUrl}`);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          addDebug(`Image upload failed: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
+          // Continue with default image
+          finalImageUrl = '/game-placeholder.jpg';
+        }
       }
+      
+      // Ensure location is set
+      const listingLocation = userLocation || 'Unknown location';
       
       const listingData = {
         userId: user.uid,
@@ -84,20 +111,25 @@ export default function CreateListing() {
         price: price ? parseFloat(price) : undefined,
         tradeOnly,
         imageUrl: finalImageUrl,
-        location: userLocation,
+        location: listingLocation,
         type
       };
       
+      addDebug(`Creating listing with data: ${JSON.stringify(listingData)}`);
       const listingId = await createGameListing(listingData);
       
       if (listingId) {
+        addDebug(`Listing created successfully! ID: ${listingId}`);
         router.push('/profile');
       } else {
-        setError('Failed to create listing');
+        addDebug('No listing ID returned from createGameListing');
+        setError('Failed to create listing - no ID returned');
       }
     } catch (error) {
       console.error('Error creating listing:', error);
-      setError('An error occurred while creating your listing');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      addDebug(`Error in submission: ${errorMsg}`);
+      setError(`An error occurred while creating your listing: ${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -210,6 +242,20 @@ export default function CreateListing() {
             </div>
             
             <div className="mb-4">
+              <label htmlFor="location" className="block text-gray-700 font-medium mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                id="location"
+                value={userLocation}
+                onChange={(e) => setUserLocation(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
               <label htmlFor="condition" className="block text-gray-700 font-medium mb-2">
                 Condition
               </label>
@@ -269,6 +315,18 @@ export default function CreateListing() {
               </button>
             </div>
           </form>
+          
+          {/* Debug information - only visible in development */}
+          {process.env.NODE_ENV === 'development' && debug.length > 0 && (
+            <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs font-mono">
+              <h3 className="font-bold mb-2">Debug Info:</h3>
+              <ul className="list-disc pl-5">
+                {debug.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </main>

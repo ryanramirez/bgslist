@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profiles - users can only read/write their own profile
+    match /users/{userId} {
+      allow read: if true;  // Anyone can read user profiles
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      // No delete rule - we generally don't want users to delete their profiles
+    }
+    
+    // Game listings - anyone can read, but only the creator can modify
+    match /gameListings/{listingId} {
+      // Anyone can read listings
+      allow read: if true;
+      
+      // Anyone authenticated can create listings
+      allow create: if request.auth != null;
+      
+      // Only the creator can update or delete their listings
+      allow update, delete: if request.auth != null && 
+                              resource.data.userId == request.auth.uid;
+    }
+  }
+} 

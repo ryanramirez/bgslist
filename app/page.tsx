@@ -7,8 +7,10 @@ import SearchFilterSort from '@/components/SearchFilterSort';
 import GameListingCard from '@/components/GameListingCard';
 import { getAllListings } from '@/lib/firestore';
 import { GameListing } from '@/lib/models';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
+  const { user } = useAuth();
   const [gameListings, setGameListings] = useState<GameListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,7 +18,9 @@ export default function Home() {
   useEffect(() => {
     const fetchListings = async () => {
       try {
+        console.log('Fetching listings from Firestore...');
         const listings = await getAllListings('offering');
+        console.log('Got listings:', listings);
         setGameListings(listings);
       } catch (err) {
         console.error('Error fetching listings:', err);
@@ -62,7 +66,14 @@ export default function Home() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No listings found. Be the first to add one!</p>
+            <p className="text-gray-500 text-lg">
+              No listings found. 
+              {user ? (
+                <span> <a href="/create-listing" className="text-amber-500 hover:underline">Create one now!</a></span>
+              ) : (
+                <span> <a href="/auth/signin" className="text-amber-500 hover:underline">Sign in</a> to create one!</span>
+              )}
+            </p>
           </div>
         )}
       </div>
@@ -76,5 +87,5 @@ function getDaysAgo(dateString: string): number {
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return diffDays === 0 ? 1 : diffDays;
 } 

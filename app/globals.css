@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.font-pixelify-sans {
+  font-family: var(--font-pixelify-sans);
+} 

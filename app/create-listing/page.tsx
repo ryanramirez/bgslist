@@ -8,7 +8,7 @@ import ImageUpload from '@/components/ImageUpload';
 import { createGameListing } from '@/lib/firestore';
 import { uploadGameImage } from '@/lib/storage';
 import { getUserProfile } from '@/lib/firestore';
-import { conditionOptions } from '@/lib/models';
+import { conditionOptions, GameListing } from '@/lib/models';
 
 export default function CreateListing() {
   const router = useRouter();
@@ -103,8 +103,11 @@ export default function CreateListing() {
       // Ensure location is set
       const listingLocation = userLocation || 'Unknown location';
       
-      // Create base listing data without price
-      const listingData: any = {
+      // Create base listing data
+      type ListingDataType = Omit<GameListing, 'id' | 'createdAt'>;
+      
+      // Start with required fields
+      const baseListingData: Omit<ListingDataType, 'price'> = {
         userId: user.uid,
         title,
         description,
@@ -115,10 +118,10 @@ export default function CreateListing() {
         type
       };
       
-      // Add price only if it exists
-      if (price) {
-        listingData.price = parseFloat(price);
-      }
+      // Create final listing data with or without price
+      const listingData: ListingDataType = price 
+        ? { ...baseListingData, price: parseFloat(price) }
+        : baseListingData;
       
       addDebug(`Creating listing with data: ${JSON.stringify(listingData)}`);
       const listingId = await createGameListing(listingData);

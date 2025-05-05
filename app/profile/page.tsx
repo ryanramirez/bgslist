@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import GameListingCard from '@/components/GameListingCard';
@@ -41,11 +44,12 @@ export default function Profile() {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-              <img 
+            <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 relative">
+              <Image 
                 src={user.avatar} 
                 alt={user.name} 
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = "https://via.placeholder.com/150";

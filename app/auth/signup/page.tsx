@@ -41,8 +41,9 @@ export default function SignUp() {
       }
       
       router.push('/profile');
-    } catch (error: any) {
-      setError(error.message || 'Failed to sign up');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign up';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

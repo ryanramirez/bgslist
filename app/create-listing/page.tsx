@@ -88,16 +88,23 @@ export default function CreateListing() {
       // Upload image if one was selected
       let finalImageUrl = imageUrl;
       if (imageFile) {
-        addDebug('Uploading image to Firebase Storage...');
+        addDebug(`Uploading image: ${imageFile.name}, size: ${Math.round(imageFile.size / 1024)}KB`);
         try {
+          console.log('Starting image upload to Firebase Storage...');
           finalImageUrl = await uploadGameImage(imageFile, user.uid);
+          console.log('Image upload completed. URL:', finalImageUrl);
           addDebug(`Image uploaded successfully: ${finalImageUrl}`);
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
+          console.error('Error details:', JSON.stringify(uploadError, null, 2));
           addDebug(`Image upload failed: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
           // Continue with default image
           finalImageUrl = '/game-placeholder.jpg';
+          addDebug('Using default image instead');
         }
+      } else {
+        console.log('No image file selected, using:', finalImageUrl);
+        addDebug(`No image file selected, using: ${finalImageUrl}`);
       }
       
       // Ensure location is set

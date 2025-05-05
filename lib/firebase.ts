@@ -1,7 +1,7 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Log Firebase config (without sensitive values)
 const logFirebaseConfig = () => {
@@ -50,10 +50,10 @@ logFirebaseConfig();
 checkEnvVars();
 
 // Initialize Firebase
-let app;
-let db;
-let auth;
-let storage;
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
+let storage: FirebaseStorage;
 
 try {
   console.log('Initializing Firebase...');

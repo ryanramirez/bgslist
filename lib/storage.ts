@@ -50,7 +50,7 @@ export const uploadGameImage = async (file: File, userId: string): Promise<strin
   // Sanitize filename to avoid special characters
   const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const timestamp = new Date().getTime();
-  const extension = safeFileName.split('.').pop() || 'jpg';
+  // Instead of extracting the extension separately, just use the sanitized filename
   const path = `games/${userId}/${timestamp}_${safeFileName}`;
   
   console.log('Uploading game image with safe path:', path);

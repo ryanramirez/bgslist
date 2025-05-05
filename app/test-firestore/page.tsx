@@ -44,7 +44,6 @@ export default function TestFirestore() {
         title: 'Test Listing',
         description: 'This is a test listing created to verify Firestore is working',
         condition: 'likeNew',
-        price: null,
         tradeOnly: false,
         imageUrl: '/game-placeholder.jpg',
         location: 'Test Location',

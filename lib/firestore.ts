@@ -15,6 +15,33 @@ import {
 import { db } from './firebase';
 import { GameListing, UserProfile } from './models';
 
+// Debug function to check Firestore connection
+export const testFirestore = async (): Promise<boolean> => {
+  try {
+    console.log('Testing Firestore connection...');
+    console.log('Firestore initialized with:', db);
+    
+    // Try to write to a test collection
+    const testData = { test: true, timestamp: serverTimestamp() };
+    
+    // Log that we're about to create a document
+    console.log('Attempting to create test document with data:', testData);
+    
+    const docRef = await addDoc(collection(db, 'test_collection'), testData);
+    
+    console.log('Test document created successfully with ID:', docRef.id);
+    
+    // Delete the test document to clean up
+    await deleteDoc(docRef);
+    
+    console.log('Test document deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error testing Firestore:', error);
+    return false;
+  }
+};
+
 // User profile functions
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
@@ -42,16 +69,33 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
 // Game listing functions
 export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdAt'>): Promise<string | null> => {
   try {
-    const listingData = {
+    console.log('Creating game listing with data:', data);
+    
+    // Make sure we handle undefined values
+    const cleanedData = {
       ...data,
+      title: data.title || 'Untitled Listing',
+      description: data.description || 'No description provided',
+      condition: data.condition || 'unknown',
+      location: data.location || 'Unknown location',
+      type: data.type || 'offering',
+      userId: data.userId,
+      imageUrl: data.imageUrl || '/game-placeholder.jpg',
+      tradeOnly: !!data.tradeOnly,
       createdAt: serverTimestamp()
     };
     
-    const docRef = await addDoc(collection(db, 'gameListings'), listingData);
+    console.log('Creating game listing collection if it doesn\'t exist');
+    const gameListingsRef = collection(db, 'gameListings');
+    
+    console.log('Adding document to gameListings collection');
+    const docRef = await addDoc(gameListingsRef, cleanedData);
+    
+    console.log('Game listing created with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('Error creating game listing:', error);
-    return null;
+    throw error; // Re-throw to ensure the error is propagated
   }
 };
 

@@ -9,19 +9,19 @@ import { storage } from './firebase';
  */
 export const uploadImage = async (file: File, path: string): Promise<string> => {
   try {
+    console.log('Creating storage reference for path:', path);
     // Create a reference to the storage location
     const storageRef = ref(storage, path);
     
-    // Set metadata to handle CORS issues
+    // Use simpler metadata with just content type
     const metadata: UploadMetadata = {
-      contentType: file.type,
-      customMetadata: {
-        'firebaseStorageDownloadTokens': crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
-      }
+      contentType: file.type
     };
     
+    console.log('Starting upload with file type:', file.type);
     // Upload the file with metadata
     const snapshot = await uploadBytes(storageRef, file, metadata);
+    console.log('Upload completed, getting download URL');
     
     // Get the download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
@@ -30,7 +30,12 @@ export const uploadImage = async (file: File, path: string): Promise<string> => 
     return downloadURL;
   } catch (error) {
     console.error('Error uploading image:', error);
-    console.error('Error details:', JSON.stringify(error));
+    // Add detailed error logging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 };
@@ -42,11 +47,13 @@ export const uploadImage = async (file: File, path: string): Promise<string> => 
  * @returns Promise with the download URL of the uploaded file
  */
 export const uploadGameImage = async (file: File, userId: string): Promise<string> => {
+  // Sanitize filename to avoid special characters
+  const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const timestamp = new Date().getTime();
-  const fileName = `${file.name.split('.')[0]}-${timestamp}`;
-  const extension = file.name.split('.').pop();
-  const path = `games/${userId}/${fileName}.${extension}`;
+  const extension = safeFileName.split('.').pop() || 'jpg';
+  const path = `games/${userId}/${timestamp}_${safeFileName}`;
   
+  console.log('Uploading game image with safe path:', path);
   return uploadImage(file, path);
 };
 

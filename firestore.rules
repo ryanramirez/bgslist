@@ -22,5 +22,10 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && 
                               resource.data.userId == request.auth.uid;
     }
+    
+    // Test collection - for testing connectivity
+    match /test_collection/{docId} {
+      allow read, write: if true;
+    }
   }
 } 

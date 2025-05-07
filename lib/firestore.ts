@@ -58,10 +58,35 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 
 export const updateUserProfile = async (userId: string, data: Partial<UserProfile>): Promise<boolean> => {
   try {
-    await updateDoc(doc(db, 'users', userId), data);
+    console.log('Updating user profile for:', userId, 'with data:', data);
+    
+    // Check if the user document exists
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      // Update existing document
+      console.log('User document exists, updating it');
+      await updateDoc(userDocRef, data);
+    } else {
+      // Create a new document if it doesn't exist
+      console.log('User document does not exist, creating it');
+      const timestamp = serverTimestamp();
+      const newUserData = {
+        ...data,
+        joinedDate: data.joinedDate || timestamp
+      };
+      
+      // Import setDoc if not already imported
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(userDocRef, newUserData);
+    }
+    
+    console.log('User profile updated successfully');
     return true;
   } catch (error) {
     console.error('Error updating user profile:', error);
+    console.error('Error details:', JSON.stringify(error));
     return false;
   }
 };
@@ -70,6 +95,7 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
 export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdAt'>): Promise<string | null> => {
   try {
     console.log('Creating game listing with data:', data);
+    console.log('Listing type:', data.type);
     
     // Make sure we handle undefined values
     const cleanedData = {
@@ -80,11 +106,16 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
       location: data.location || 'Unknown location',
       type: data.type || 'offering',
       userId: data.userId,
-      imageUrl: data.imageUrl || '/game-placeholder.jpg',
       tradeOnly: !!data.tradeOnly,
       createdAt: serverTimestamp()
     };
     
+    // Only include imageUrl if it exists in the data
+    if ('imageUrl' in data && data.imageUrl) {
+      cleanedData.imageUrl = data.imageUrl;
+    }
+    
+    console.log('Cleaned game listing data:', cleanedData);
     console.log('Creating game listing collection if it doesn\'t exist');
     const gameListingsRef = collection(db, 'gameListings');
     
@@ -92,6 +123,12 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
     const docRef = await addDoc(gameListingsRef, cleanedData);
     
     console.log('Game listing created with ID:', docRef.id);
+    
+    // Verify the document was created
+    const createdDoc = await getDoc(docRef);
+    console.log('Created document exists:', createdDoc.exists());
+    console.log('Created document data:', createdDoc.data());
+    
     return docRef.id;
   } catch (error) {
     console.error('Error creating game listing:', error);

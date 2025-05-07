@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import GameListingCard from '@/components/GameListingCard';
 import { useAuth } from '@/context/AuthContext';
-import { getUserProfile, getUserListings } from '@/lib/firestore';
+import { getUserProfile, getUserListings, updateUserProfile } from '@/lib/firestore';
 import { UserProfile, GameListing } from '@/lib/models';
 
 export default function Profile() {
@@ -17,6 +17,7 @@ export default function Profile() {
   const [userListings, setUserListings] = useState<GameListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedLocation, setEditedLocation] = useState('');
@@ -29,25 +30,75 @@ export default function Profile() {
     }
   }, [authLoading, user, router]);
 
-  // Fetch user profile and listings
+  // Fetch or create user profile
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user) return;
       
       try {
         setLoading(true);
+        console.log('Fetching profile data for user ID:', user.uid);
         
         // Fetch user profile
-        const userProfile = await getUserProfile(user.uid);
+        let userProfile = await getUserProfile(user.uid);
+        console.log('User profile fetched:', userProfile);
+        
+        // If no profile exists, create a default one
+        if (!userProfile) {
+          console.log('No profile found, creating a default profile');
+          
+          // Create a default profile object
+          const defaultProfile = {
+            name: user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            location: '',
+            joinedDate: new Date().toISOString(),
+            bio: '',
+            avatar: ''
+          };
+          
+          console.log('Default profile data:', defaultProfile);
+          
+          try {
+            // Update the database with the default profile
+            const success = await updateUserProfile(user.uid, defaultProfile);
+            
+            if (success) {
+              console.log('Default profile created successfully');
+              // Fetch the profile again
+              userProfile = await getUserProfile(user.uid);
+              console.log('Newly created profile:', userProfile);
+              
+              if (!userProfile) {
+                // If still null, construct it manually
+                console.log('Constructing profile manually after creation');
+                userProfile = {
+                  id: user.uid,
+                  ...defaultProfile
+                };
+              }
+            } else {
+              console.error('Failed to create default profile - unknown error');
+              setError('We encountered an issue setting up your profile. Please try again.');
+            }
+          } catch (profileError) {
+            console.error('Error creating default profile:', profileError);
+            setError('Error creating profile: ' + String(profileError));
+          }
+        }
+        
+        // Set the profile
         if (userProfile) {
           setProfile(userProfile);
-          setEditedName(userProfile.name);
-          setEditedLocation(userProfile.location);
-          setEditedBio(userProfile.bio);
+          setEditedName(userProfile.name || '');
+          setEditedLocation(userProfile.location || '');
+          setEditedBio(userProfile.bio || '');
         }
         
         // Fetch user listings
+        console.log('Fetching listings for user ID:', user.uid);
         const listings = await getUserListings(user.uid);
+        console.log('User listings fetched:', listings);
         setUserListings(listings);
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -62,26 +113,55 @@ export default function Profile() {
 
   // Handle profile edit
   const handleSaveProfile = async () => {
-    if (!user || !profile) return;
+    if (!user) return;
     
     try {
       setLoading(true);
+      setError('');
       
       const updatedProfile = {
-        ...profile,
+        ...(profile || { id: user.uid }),
         name: editedName,
         location: editedLocation,
-        bio: editedBio
+        bio: editedBio,
+        email: user.email || ''
       };
       
-      // Call your updateUserProfile function here
-      // await updateUserProfile(user.uid, updatedProfile);
+      console.log('Saving profile with data:', updatedProfile);
       
-      setProfile(updatedProfile);
-      setIsEditing(false);
+      try {
+        const success = await updateUserProfile(user.uid, updatedProfile);
+        
+        if (success) {
+          console.log('Profile updated successfully');
+          
+          // Fetch the updated profile to make sure we have the latest data
+          const latestProfile = await getUserProfile(user.uid);
+          if (latestProfile) {
+            setProfile(latestProfile);
+          } else {
+            console.log('Could not fetch updated profile, using local data');
+            setProfile(updatedProfile as UserProfile);
+          }
+          
+          setIsEditing(false);
+          setSuccessMessage('Profile updated successfully!');
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSuccessMessage('');
+          }, 3000);
+        } else {
+          console.error('Failed to update profile - unknown error');
+          setError('Failed to update your profile. Please try again.');
+        }
+      } catch (saveError) {
+        console.error('Exception during profile update:', saveError);
+        setError('Error saving profile: ' + String(saveError));
+      }
     } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('Failed to update your profile');
+      console.error('General error in handleSaveProfile:', err);
+      setError('Failed to update your profile. Error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
     }
@@ -98,12 +178,85 @@ export default function Profile() {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return (
       <main className="min-h-screen bg-gray-100">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-gray-600">Profile not found or you are not logged in.</p>
+          <p className="text-center text-gray-600">Please sign in to view your profile.</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Even if profile is null, show the edit form
+  if (!profile) {
+    return (
+      <main className="min-h-screen bg-gray-100">
+        <Navbar />
+        <Banner />
+        
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold mb-6">Complete Your Profile</h2>
+            
+            <p className="mb-4">Let's set up your profile information:</p>
+            
+            <div className="flex-grow w-full">
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Name</label>
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Your name"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={user.email || ''}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Default Location</label>
+                <input
+                  type="text"
+                  value={editedLocation}
+                  onChange={(e) => setEditedLocation(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="e.g., Portland, OR"
+                />
+                <p className="text-xs text-gray-500 mt-1">This will be used as the default location for your listings</p>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Bio</label>
+                <textarea
+                  value={editedBio}
+                  onChange={(e) => setEditedBio(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Tell others about yourself and your board game interests..."
+                />
+              </div>
+              
+              <div>
+                <button 
+                  onClick={handleSaveProfile}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -121,12 +274,20 @@ export default function Profile() {
           </div>
         )}
         
+        {successMessage && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {successMessage}
+          </div>
+        )}
+        
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-6">My Profile</h2>
+          
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 relative">
               <Image 
-                src={profile.avatar || '/user-placeholder.jpg'} 
-                alt={profile.name} 
+                src={profile?.avatar || '/user-placeholder.jpg'} 
+                alt={profile?.name || 'User'} 
                 fill
                 className="object-cover"
                 onError={(e) => {
@@ -137,7 +298,7 @@ export default function Profile() {
             </div>
             
             {isEditing ? (
-              <div className="flex-grow">
+              <div className="flex-grow w-full">
                 <div className="mb-4">
                   <label className="block text-gray-700 font-medium mb-2">Name</label>
                   <input
@@ -149,13 +310,26 @@ export default function Profile() {
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">Location</label>
+                  <label className="block text-gray-700 font-medium mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={user.email || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-medium mb-2">Default Location</label>
                   <input
                     type="text"
                     value={editedLocation}
                     onChange={(e) => setEditedLocation(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    placeholder="e.g., Portland, OR"
                   />
+                  <p className="text-xs text-gray-500 mt-1">This will be used as the default location for your listings</p>
                 </div>
                 
                 <div className="mb-4">
@@ -165,6 +339,7 @@ export default function Profile() {
                     onChange={(e) => setEditedBio(e.target.value)}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    placeholder="Tell others about yourself and your board game interests..."
                   />
                 </div>
                 
@@ -173,7 +348,7 @@ export default function Profile() {
                     onClick={handleSaveProfile}
                     className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded"
                   >
-                    Save
+                    Save Changes
                   </button>
                   <button 
                     onClick={() => setIsEditing(false)}
@@ -185,21 +360,32 @@ export default function Profile() {
               </div>
             ) : (
               <div className="flex-grow text-center md:text-left">
-                <h2 className="text-2xl font-bold">{profile.name}</h2>
-                <p className="text-gray-600">{profile.location}</p>
-                <p className="text-gray-500 text-sm">Member since {new Date(profile.joinedDate).toLocaleDateString()}</p>
-                <p className="mt-4">{profile.bio}</p>
-              </div>
-            )}
-            
-            {!isEditing && (
-              <div className="flex-shrink-0">
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded"
-                >
-                  Edit Profile
-                </button>
+                <h2 className="text-2xl font-bold">{profile?.name || 'User'}</h2>
+                <p className="text-gray-600 mb-1">{user.email}</p>
+                
+                <div className="mt-2">
+                  <span className="font-medium">Location: </span>
+                  <span>{profile?.location || 'Not specified'}</span>
+                </div>
+                
+                <div className="mt-2">
+                  <span className="font-medium">Member since: </span>
+                  <span>{profile?.joinedDate ? new Date(profile.joinedDate).toLocaleDateString() : 'Unknown'}</span>
+                </div>
+                
+                <div className="mt-4">
+                  <p className="font-medium mb-1">Bio:</p>
+                  <p className="text-gray-700">{profile?.bio || 'No bio provided yet.'}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
               </div>
             )}
           </div>

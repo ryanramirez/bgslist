@@ -8,19 +8,26 @@ import GameListingCard from '@/components/GameListingCard';
 import { getAllListings } from '@/lib/firestore';
 import { GameListing } from '@/lib/models';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const { user } = useAuth();
   const [gameListings, setGameListings] = useState<GameListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Add a last loaded timestamp to ensure fresh data
+  const [lastLoaded, setLastLoaded] = useState(Date.now());
 
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        console.log('Fetching listings from Firestore...');
-        const listings = await getAllListings('offering');
-        console.log('Got listings:', listings);
+        setLoading(true);
+        console.log('Fetching offerings from Firestore...');
+        const type = 'offering';
+        console.log(`Querying for listings with type: ${type}`);
+        const listings = await getAllListings(type);
+        console.log(`Got ${listings.length} offerings:`, listings);
         setGameListings(listings);
       } catch (err) {
         console.error('Error fetching listings:', err);
@@ -31,7 +38,19 @@ export default function Home() {
     };
 
     fetchListings();
-  }, []);
+    
+    // Set up a focus event listener to refresh data when the page regains focus
+    const handleFocus = () => {
+      console.log('Page regained focus, refreshing data');
+      setLastLoaded(Date.now());
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [lastLoaded]); // Re-run when lastLoaded changes
 
   return (
     <main className="min-h-screen bg-gray-100">

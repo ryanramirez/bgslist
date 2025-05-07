@@ -21,7 +21,7 @@ export default function CreateListing() {
   const [tradeOnly, setTradeOnly] = useState(false);
   const [type, setType] = useState<'offering' | 'selling' | 'wanting'>('offering');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState('/game-placeholder.jpg');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -86,7 +86,7 @@ export default function CreateListing() {
     
     try {
       // Upload image if one was selected
-      let finalImageUrl = imageUrl;
+      let finalImageUrl = null;
       if (imageFile) {
         addDebug(`Uploading image: ${imageFile.name}, size: ${Math.round(imageFile.size / 1024)}KB`);
         try {
@@ -98,13 +98,13 @@ export default function CreateListing() {
           console.error('Error uploading image:', uploadError);
           console.error('Error details:', JSON.stringify(uploadError, null, 2));
           addDebug(`Image upload failed: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
-          // Continue with default image
-          finalImageUrl = '/game-placeholder.jpg';
-          addDebug('Using default image instead');
+          setError('Failed to upload image. Please try again.');
+          setIsSubmitting(false);
+          return;
         }
       } else {
-        console.log('No image file selected, using:', finalImageUrl);
-        addDebug(`No image file selected, using: ${finalImageUrl}`);
+        console.log('No image file selected');
+        addDebug('No image file selected');
       }
       
       // Ensure location is set
@@ -112,30 +112,46 @@ export default function CreateListing() {
       
       // Create base listing data
       type ListingDataType = Omit<GameListing, 'id' | 'createdAt'>;
+      type BaseListingDataType = Omit<ListingDataType, 'price' | 'imageUrl'>;
       
       // Start with required fields
-      const baseListingData: Omit<ListingDataType, 'price'> = {
+      const baseListingData: BaseListingDataType = {
         userId: user.uid,
         title,
         description,
         condition,
         tradeOnly,
-        imageUrl: finalImageUrl,
         location: listingLocation,
         type
       };
       
+      // Add imageUrl only if we have one
+      if (finalImageUrl) {
+        Object.assign(baseListingData, { imageUrl: finalImageUrl });
+      }
+      
       // Create final listing data with or without price
       const listingData: ListingDataType = price 
         ? { ...baseListingData, price: parseFloat(price) }
-        : baseListingData;
+        : baseListingData as ListingDataType;
       
       addDebug(`Creating listing with data: ${JSON.stringify(listingData)}`);
       const listingId = await createGameListing(listingData);
       
       if (listingId) {
         addDebug(`Listing created successfully! ID: ${listingId}`);
-        router.push('/profile');
+        
+        // Redirect to the appropriate page based on listing type
+        const redirectPaths = {
+          'offering': '/',  // Offering listings shown on home page
+          'wanting': '/looking-for',
+          'selling': '/selling'
+        };
+        
+        const redirectPath = redirectPaths[type];
+        addDebug(`Redirecting to ${redirectPath}`);
+        
+        router.push(redirectPath);
       } else {
         addDebug('No listing ID returned from createGameListing');
         setError('Failed to create listing - no ID returned');
@@ -181,7 +197,7 @@ export default function CreateListing() {
                 Game Image
               </label>
               <ImageUpload
-                initialImage={imageUrl}
+                initialImage={imageUrl || undefined}
                 onImageChange={handleImageChange}
                 className="mb-2"
               />
@@ -203,7 +219,17 @@ export default function CreateListing() {
                     onChange={() => setType('offering')}
                     className="form-radio text-amber-500"
                   />
-                  <span className="ml-2">Offering for Trade</span>
+                  <span className="ml-2">Offering</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    value="wanting"
+                    checked={type === 'wanting'}
+                    onChange={() => setType('wanting')}
+                    className="form-radio text-amber-500"
+                  />
+                  <span className="ml-2">Looking for</span>
                 </label>
                 <label className="inline-flex items-center">
                   <input
@@ -214,16 +240,6 @@ export default function CreateListing() {
                     className="form-radio text-amber-500"
                   />
                   <span className="ml-2">Selling</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    value="wanting"
-                    checked={type === 'wanting'}
-                    onChange={() => setType('wanting')}
-                    className="form-radio text-amber-500"
-                  />
-                  <span className="ml-2">Wanting</span>
                 </label>
               </div>
             </div>

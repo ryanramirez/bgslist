@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 type NavLinkProps = {
   href: string;
@@ -26,14 +27,38 @@ type NavbarProps = {
 };
 
 export default function Navbar({ activePage = 'offering' }: NavbarProps) {
+  const router = useRouter();
   const { user, signOut } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+    setDropdownOpen(false);
+    router.push('/');
+  };
 
   return (
     <nav className="flex items-center justify-between px-4 py-2 bg-amber-600">
       <div className="flex items-center">
         <Link href="/" className="flex items-center">
-          <Image src="/bgslist-logo.png" alt="BGSLIST Logo" width={32} height={32} className="mr-2" />
-          <span className="text-xl font-bold text-white">BGSLIST</span>
+          {/* <Image src="/bgslist-logo.png" alt="BGSLIST Logo" width={32} height={32} className="mr-2" /> */}  
+          <span className="font-pixelify-sans text-xl font-bold text-white">BGSLIST</span>
         </Link>
       </div>
       
@@ -59,21 +84,41 @@ export default function Navbar({ activePage = 'offering' }: NavbarProps) {
                 </svg>
               </span>
             </Link>
-            <Link href="/profile">
-              <span className="text-white hover:text-white/80">
+            
+            {/* Profile dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="text-white hover:text-white/80 flex items-center"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-              </span>
-            </Link>
-            <button 
-              onClick={() => signOut()}
-              className="text-white hover:text-white/80"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
+              </button>
+              
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <Link href="/profile">
+                      <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Profile
+                      </span>
+                    </Link>
+                    <Link href="/my-listings">
+                      <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        My Listings
+                      </span>
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <Link href="/auth/signin">

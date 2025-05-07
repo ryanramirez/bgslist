@@ -18,7 +18,7 @@ export interface GameListing {
   condition: string;
   price?: number; // Optional for trade-only listings
   tradeOnly: boolean;
-  imageUrl: string;
+  imageUrl?: string; // Optional for listings without images
   location: string;
   createdAt: string;
   type: 'offering' | 'selling' | 'wanting';

@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '@/context/AuthContext';
+import { VPProvider } from '@/context/VPContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +70,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${pixelifySans.variable} antialiased`}
       >
         <AuthProvider>
-          {children}
+          <VPProvider>
+            {children}
+          </VPProvider>
         </AuthProvider>
       </body>
     </html>

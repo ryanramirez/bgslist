@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useVP } from '@/context/VPContext';
 import Navbar from '@/components/Navbar';
 import ImageUpload from '@/components/ImageUpload';
 import LocationDropdown from '@/components/LocationDropdown';
@@ -14,6 +15,7 @@ import { conditionOptions, GameListing } from '@/lib/models';
 export default function CreateListing() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { refreshVPs } = useVP();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -143,6 +145,9 @@ export default function CreateListing() {
         addDebug(`Listing created successfully! ID: ${listingId}`);
         
         // Note: createGameListing now handles incrementing post count and VPs
+        
+        // Refresh VP data to update navbar
+        refreshVPs();
 
         // Redirect to the appropriate page based on listing type
         const redirectPaths = {

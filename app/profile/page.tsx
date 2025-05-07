@@ -9,12 +9,14 @@ import GameListingCard from '@/components/GameListingCard';
 import LocationDropdown from '@/components/LocationDropdown';
 import VPBadge from '@/components/VPBadge';
 import { useAuth } from '@/context/AuthContext';
+import { useVP } from '@/context/VPContext';
 import { getUserProfile, getUserListings, updateUserProfile, updateUserVPs } from '@/lib/firestore';
 import { UserProfile, GameListing } from '@/lib/models';
 
 export default function Profile() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { refreshVPs } = useVP();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userListings, setUserListings] = useState<GameListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +98,8 @@ export default function Profile() {
           await updateUserVPs(user.uid);
           // Re-fetch profile to get the updated VP count
           userProfile = await getUserProfile(user.uid);
+          // Refresh the VP context so navbar updates too
+          refreshVPs();
         }
         
         // Set the profile
@@ -120,7 +124,7 @@ export default function Profile() {
     };
     
     fetchUserData();
-  }, [user]);
+  }, [user, refreshVPs]);
 
   // Handle profile edit
   const handleSaveProfile = async () => {
@@ -162,6 +166,9 @@ export default function Profile() {
           setTimeout(() => {
             setSuccessMessage('');
           }, 3000);
+          
+          // Refresh VP data in context
+          refreshVPs();
         } else {
           console.error('Failed to update profile - unknown error');
           setError('Failed to update your profile. Please try again.');

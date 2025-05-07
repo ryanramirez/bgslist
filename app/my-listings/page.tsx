@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +17,7 @@ export default function MyListings() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [lastRefresh] = useState(Date.now());
 
   // Redirect if not logged in
   useEffect(() => {
@@ -168,11 +169,13 @@ export default function MyListings() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {listing.imageUrl && (
-                          <div className="flex-shrink-0 h-10 w-10 mr-4">
-                            <img 
-                              className="h-10 w-10 rounded object-cover" 
+                          <div className="flex-shrink-0 h-10 w-10 mr-4 relative">
+                            <Image 
+                              className="rounded object-cover" 
                               src={listing.imageUrl} 
                               alt={listing.title}
+                              fill
+                              sizes="40px"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "https://via.placeholder.com/40?text=BG";
@@ -221,7 +224,7 @@ export default function MyListings() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500 mb-4">You don't have any listings yet.</p>
+            <p className="text-gray-500 mb-4">You don&apos;t have any listings yet.</p>
             <button
               onClick={() => router.push('/create-listing')}
               className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded"

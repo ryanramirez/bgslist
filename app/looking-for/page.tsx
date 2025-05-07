@@ -8,10 +8,8 @@ import GameListingCard from '@/components/GameListingCard';
 import { getAllListings } from '@/lib/firestore';
 import { GameListing } from '@/lib/models';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 
 export default function LookingFor() {
-  const router = useRouter();
   const { user } = useAuth();
   const [gameListings, setGameListings] = useState<GameListing[]>([]);
   const [loading, setLoading] = useState(true);

@@ -200,7 +200,7 @@ export default function Profile() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold mb-6">Complete Your Profile</h2>
             
-            <p className="mb-4">Let's set up your profile information:</p>
+            <p className="mb-4">Let&apos;s set up your profile information:</p>
             
             <div className="flex-grow w-full">
               <div className="mb-4">

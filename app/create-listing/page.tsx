@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import ImageUpload from '@/components/ImageUpload';
+import LocationDropdown from '@/components/LocationDropdown';
 import { createGameListing } from '@/lib/firestore';
 import { uploadGameImage } from '@/lib/storage';
 import { getUserProfile } from '@/lib/firestore';
@@ -276,13 +277,9 @@ export default function CreateListing() {
               <label htmlFor="location" className="block text-gray-700 font-medium mb-2">
                 Location
               </label>
-              <input
-                type="text"
-                id="location"
-                value={userLocation}
-                onChange={(e) => setUserLocation(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                required
+              <LocationDropdown
+                selectedLocation={userLocation}
+                onChange={setUserLocation}
               />
             </div>
             

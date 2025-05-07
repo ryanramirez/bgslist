@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import GameListingCard from '@/components/GameListingCard';
+import LocationDropdown from '@/components/LocationDropdown';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProfile, getUserListings, updateUserProfile } from '@/lib/firestore';
 import { UserProfile, GameListing } from '@/lib/models';
@@ -226,12 +227,9 @@ export default function Profile() {
               
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Default Location</label>
-                <input
-                  type="text"
-                  value={editedLocation}
-                  onChange={(e) => setEditedLocation(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="e.g., Portland, OR"
+                <LocationDropdown
+                  selectedLocation={editedLocation}
+                  onChange={setEditedLocation}
                 />
                 <p className="text-xs text-gray-500 mt-1">This will be used as the default location for your listings</p>
               </div>
@@ -322,12 +320,9 @@ export default function Profile() {
                 
                 <div className="mb-4">
                   <label className="block text-gray-700 font-medium mb-2">Default Location</label>
-                  <input
-                    type="text"
-                    value={editedLocation}
-                    onChange={(e) => setEditedLocation(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    placeholder="e.g., Portland, OR"
+                  <LocationDropdown
+                    selectedLocation={editedLocation}
+                    onChange={setEditedLocation}
                   />
                   <p className="text-xs text-gray-500 mt-1">This will be used as the default location for your listings</p>
                 </div>

@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import VPBadge from './VPBadge';
+import { getUserProfile } from '@/lib/firestore';
 
 type NavLinkProps = {
   href: string;
@@ -30,6 +32,25 @@ export default function Navbar({ activePage = 'offering' }: NavbarProps) {
   const { user, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userVPs, setUserVPs] = useState<number>(0);
+  
+  // Fetch user profile to get VPs
+  useEffect(() => {
+    const fetchUserVPs = async () => {
+      if (!user) return;
+      
+      try {
+        const profile = await getUserProfile(user.uid);
+        if (profile && profile.vps !== undefined) {
+          setUserVPs(profile.vps);
+        }
+      } catch (error) {
+        console.error('Error fetching user VPs:', error);
+      }
+    };
+    
+    fetchUserVPs();
+  }, [user]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -83,6 +104,9 @@ export default function Navbar({ activePage = 'offering' }: NavbarProps) {
                 </svg>
               </span>
             </Link>
+            
+            {/* VP Badge */}
+            <VPBadge vps={userVPs} size="sm" />
             
             {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>

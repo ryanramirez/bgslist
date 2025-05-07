@@ -7,8 +7,9 @@ import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import GameListingCard from '@/components/GameListingCard';
 import LocationDropdown from '@/components/LocationDropdown';
+import VPBadge from '@/components/VPBadge';
 import { useAuth } from '@/context/AuthContext';
-import { getUserProfile, getUserListings, updateUserProfile } from '@/lib/firestore';
+import { getUserProfile, getUserListings, updateUserProfile, updateUserVPs } from '@/lib/firestore';
 import { UserProfile, GameListing } from '@/lib/models';
 
 export default function Profile() {
@@ -55,7 +56,9 @@ export default function Profile() {
             location: '',
             joinedDate: new Date().toISOString(),
             bio: '',
-            avatar: ''
+            avatar: '',
+            vps: 1, // Start with 1 VP for creating an account
+            postCount: 0
           };
           
           console.log('Default profile data:', defaultProfile);
@@ -86,6 +89,13 @@ export default function Profile() {
             console.error('Error creating default profile:', profileError);
             setError('Error creating profile: ' + String(profileError));
           }
+        }
+        
+        // Ensure VP count is updated (adds missing VPs if needed)
+        if (userProfile) {
+          await updateUserVPs(user.uid);
+          // Re-fetch profile to get the updated VP count
+          userProfile = await getUserProfile(user.uid);
         }
         
         // Set the profile
@@ -355,7 +365,10 @@ export default function Profile() {
               </div>
             ) : (
               <div className="flex-grow text-center md:text-left">
-                <h2 className="text-2xl font-bold">{profile?.name || 'User'}</h2>
+                <div className="flex items-center justify-center md:justify-start mb-2">
+                  <h2 className="text-2xl font-bold mr-3">{profile?.name || 'User'}</h2>
+                  <VPBadge vps={profile?.vps || 0} size="md" />
+                </div>
                 <p className="text-gray-600 mb-1">{user.email}</p>
                 
                 <div className="mt-2">
@@ -366,6 +379,11 @@ export default function Profile() {
                 <div className="mt-2">
                   <span className="font-medium">Member since: </span>
                   <span>{profile?.joinedDate ? new Date(profile.joinedDate).toLocaleDateString() : 'Unknown'}</span>
+                </div>
+                
+                <div className="mt-2">
+                  <span className="font-medium">Listings: </span>
+                  <span>{profile?.postCount || 0}</span>
                 </div>
                 
                 <div className="mt-4">

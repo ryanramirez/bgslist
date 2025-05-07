@@ -10,10 +10,12 @@ import {
   where, 
   orderBy,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  increment
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { GameListing, UserProfile } from './models';
+import { updateProfileVPs } from './points';
 
 // Debug function to check Firestore connection
 export const testFirestore = async (): Promise<boolean> => {
@@ -74,7 +76,9 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
       const timestamp = serverTimestamp();
       const newUserData = {
         ...data,
-        joinedDate: data.joinedDate || timestamp
+        joinedDate: data.joinedDate || timestamp,
+        vps: data.vps || 1, // 1 point for creating an account
+        postCount: data.postCount || 0
       };
       
       // Import setDoc if not already imported
@@ -87,6 +91,71 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
   } catch (error) {
     console.error('Error updating user profile:', error);
     console.error('Error details:', JSON.stringify(error));
+    return false;
+  }
+};
+
+// Update user VPs
+export const updateUserVPs = async (userId: string): Promise<boolean> => {
+  try {
+    // Get user profile
+    const profile = await getUserProfile(userId);
+    if (!profile) return false;
+    
+    // Get user listings to count posts
+    const listings = await getUserListings(userId);
+    
+    // For now, we don't have a rating system, so highRatedListings is 0
+    // This will be updated once we implement listing ratings
+    const highRatedListings = 0;
+    
+    // Calculate updated profile with VPs
+    const updatedProfile = updateProfileVPs(profile, listings, highRatedListings);
+    
+    // Update the profile in Firestore
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { 
+      vps: updatedProfile.vps,
+      postCount: updatedProfile.postCount 
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating user VPs:', error);
+    return false;
+  }
+};
+
+// Increment user's post count and recalculate VPs
+export const incrementUserPostCount = async (userId: string): Promise<boolean> => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    
+    // Get current profile to check milestone achievements
+    const profile = await getUserProfile(userId);
+    if (!profile) return false;
+    
+    // Calculate current post count and vps
+    const currentPostCount = profile.postCount || 0;
+    const newPostCount = currentPostCount + 1;
+    
+    // Check if we've reached a milestone for VP awards
+    const oldVPs = profile.vps || 1; // Default 1 for account creation
+    let vpDelta = 0;
+    
+    if (newPostCount === 1) vpDelta = 1; // 1st post
+    else if (newPostCount === 5) vpDelta = 2; // 5th post
+    else if (newPostCount === 10) vpDelta = 2; // 10th post (3 -> 5)
+    
+    // Update the document
+    await updateDoc(userDocRef, { 
+      postCount: increment(1),
+      vps: oldVPs + vpDelta
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error incrementing post count:', error);
     return false;
   }
 };
@@ -123,6 +192,9 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
     const docRef = await addDoc(gameListingsRef, cleanedData);
     
     console.log('Game listing created with ID:', docRef.id);
+    
+    // Increment user's post count and update VPs
+    await incrementUserPostCount(data.userId);
     
     // Verify the document was created
     const createdDoc = await getDoc(docRef);

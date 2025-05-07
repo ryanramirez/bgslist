@@ -7,6 +7,8 @@ export interface UserProfile {
   joinedDate: string;
   bio: string;
   avatar: string;
+  vps?: number; // Victory Points
+  postCount?: number; // Track number of posts for VP calculation
 }
 
 // Game listing interface

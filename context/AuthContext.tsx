@@ -10,6 +10,7 @@ import {
   User
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { updateUserProfile } from '@/lib/firestore';
 
 type AuthContextType = {
   user: User | null;
@@ -36,7 +37,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    
+    // Initialize user profile with VP points
+    if (userCredential.user) {
+      const newUser = userCredential.user;
+      await updateUserProfile(newUser.uid, {
+        name: email.split('@')[0] || 'User',
+        email: email,
+        joinedDate: new Date().toISOString(),
+        vps: 1, // 1 point for creating an account
+        postCount: 0,
+        location: '',
+        bio: '',
+        avatar: ''
+      });
+    }
   };
 
   const signIn = async (email: string, password: string) => {

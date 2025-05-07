@@ -142,6 +142,8 @@ export default function CreateListing() {
       if (listingId) {
         addDebug(`Listing created successfully! ID: ${listingId}`);
         
+        // Note: createGameListing now handles incrementing post count and VPs
+
         // Redirect to the appropriate page based on listing type
         const redirectPaths = {
           'offering': '/',  // Offering listings shown on home page

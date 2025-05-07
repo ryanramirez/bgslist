@@ -9,6 +9,8 @@ export interface UserProfile {
   avatar: string;
   vps?: number; // Victory Points
   postCount?: number; // Track number of posts for VP calculation
+  favoriteGameId?: string; // ID reference to favorite board game
+  favoriteGenreId?: string; // ID reference to favorite board game genre
 }
 
 // Game listing interface

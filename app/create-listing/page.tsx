@@ -7,10 +7,12 @@ import { useVP } from '@/context/VPContext';
 import Navbar from '@/components/Navbar';
 import ImageUpload from '@/components/ImageUpload';
 import LocationDropdown from '@/components/LocationDropdown';
+import BoardGameDropdown from '@/components/BoardGameDropdown';
 import { createGameListing } from '@/lib/firestore';
 import { uploadGameImage } from '@/lib/storage';
 import { getUserProfile } from '@/lib/firestore';
 import { conditionOptions, GameListing } from '@/lib/models';
+import { popularBoardGames } from '@/lib/boardGames';
 
 export default function CreateListing() {
   const router = useRouter();
@@ -18,6 +20,8 @@ export default function CreateListing() {
   const { refreshVPs } = useVP();
   
   const [title, setTitle] = useState('');
+  const [selectedGameId, setSelectedGameId] = useState('');
+  const [useCustomTitle, setUseCustomTitle] = useState(false);
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('likeNew');
   const [price, setPrice] = useState('');
@@ -29,6 +33,17 @@ export default function CreateListing() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [debug, setDebug] = useState<string[]>([]);
+
+  // When a game is selected, set the title
+  useEffect(() => {
+    if (selectedGameId && !useCustomTitle) {
+      const selectedGame = popularBoardGames.find(game => game.id === selectedGameId);
+      if (selectedGame) {
+        setTitle(selectedGame.name);
+        addDebug(`Auto-filled title from selected game: ${selectedGame.name}`);
+      }
+    }
+  }, [selectedGameId, useCustomTitle]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -73,6 +88,24 @@ export default function CreateListing() {
     const objectUrl = URL.createObjectURL(file);
     setImageUrl(objectUrl);
     addDebug(`Image selected: ${file.name}, size: ${Math.round(file.size / 1024)}KB`);
+  };
+
+  const handleCustomTitleToggle = () => {
+    setUseCustomTitle(!useCustomTitle);
+    if (!useCustomTitle) {
+      // If switching to custom title, keep the currently selected game name
+      // This gives a better UX when the user wants to slightly modify a game name
+      addDebug('Switched to custom title input');
+    } else {
+      // If switching back to dropdown, update title from selected game
+      if (selectedGameId) {
+        const selectedGame = popularBoardGames.find(game => game.id === selectedGameId);
+        if (selectedGame) {
+          setTitle(selectedGame.name);
+          addDebug(`Reverted to selected game title: ${selectedGame.name}`);
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,14 +289,36 @@ export default function CreateListing() {
               <label htmlFor="title" className="block text-gray-700 font-medium mb-2">
                 Game Title
               </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                required
-              />
+              
+              <div className="mb-2">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={useCustomTitle}
+                    onChange={handleCustomTitleToggle}
+                    className="form-checkbox text-amber-500"
+                  />
+                  <span className="ml-2 text-sm">Use custom title</span>
+                </label>
+              </div>
+              
+              {useCustomTitle ? (
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  required
+                  placeholder="Enter custom game title"
+                />
+              ) : (
+                <BoardGameDropdown
+                  selectedGameId={selectedGameId}
+                  onChange={setSelectedGameId}
+                  className="mb-2"
+                />
+              )}
             </div>
             
             <div className="mb-4">

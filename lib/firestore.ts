@@ -144,8 +144,11 @@ export const incrementUserPostCount = async (userId: string): Promise<boolean> =
     let vpDelta = 0;
     
     if (newPostCount === 1) vpDelta = 1; // 1st post
-    else if (newPostCount === 5) vpDelta = 2; // 5th post
-    else if (newPostCount === 10) vpDelta = 2; // 10th post (3 -> 5)
+    else if (newPostCount === 2) vpDelta = 2; // 2nd post
+    else if (newPostCount === 3) vpDelta = 3; // 3rd post
+    else if (newPostCount === 4) vpDelta = 4; // 4th post
+    else if (newPostCount === 5) vpDelta = 5; // 5th post
+    else if (newPostCount === 10) vpDelta = 10; // 10th post (3 -> 5)
     
     // Update the document
     await updateDoc(userDocRef, { 

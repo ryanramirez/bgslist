@@ -7,11 +7,15 @@ import Navbar from '@/components/Navbar';
 import Banner from '@/components/Banner';
 import GameListingCard from '@/components/GameListingCard';
 import LocationDropdown from '@/components/LocationDropdown';
+import BoardGameDropdown from '@/components/BoardGameDropdown';
+import GenreDropdown from '@/components/GenreDropdown';
 import VPBadge from '@/components/VPBadge';
 import { useAuth } from '@/context/AuthContext';
 import { useVP } from '@/context/VPContext';
 import { getUserProfile, getUserListings, updateUserProfile, updateUserVPs } from '@/lib/firestore';
 import { UserProfile, GameListing } from '@/lib/models';
+import { popularBoardGames } from '@/lib/boardGames';
+import { boardGameGenres } from '@/lib/boardGameGenres';
 
 export default function Profile() {
   const router = useRouter();
@@ -26,6 +30,8 @@ export default function Profile() {
   const [editedName, setEditedName] = useState('');
   const [editedLocation, setEditedLocation] = useState('');
   const [editedBio, setEditedBio] = useState('');
+  const [editedFavoriteGameId, setEditedFavoriteGameId] = useState('');
+  const [editedFavoriteGenreId, setEditedFavoriteGenreId] = useState('');
 
   // Redirect if not logged in
   useEffect(() => {
@@ -60,7 +66,9 @@ export default function Profile() {
             bio: '',
             avatar: '',
             vps: 1, // Start with 1 VP for creating an account
-            postCount: 0
+            postCount: 0,
+            favoriteGameId: '',
+            favoriteGenreId: ''
           };
           
           console.log('Default profile data:', defaultProfile);
@@ -108,6 +116,8 @@ export default function Profile() {
           setEditedName(userProfile.name || '');
           setEditedLocation(userProfile.location || '');
           setEditedBio(userProfile.bio || '');
+          setEditedFavoriteGameId(userProfile.favoriteGameId || '');
+          setEditedFavoriteGenreId(userProfile.favoriteGenreId || '');
         }
         
         // Fetch user listings
@@ -139,7 +149,9 @@ export default function Profile() {
         name: editedName,
         location: editedLocation,
         bio: editedBio,
-        email: user.email || ''
+        email: user.email || '',
+        favoriteGameId: editedFavoriteGameId,
+        favoriteGenreId: editedFavoriteGenreId
       };
       
       console.log('Saving profile with data:', updatedProfile);
@@ -184,6 +196,10 @@ export default function Profile() {
       setLoading(false);
     }
   };
+
+  // Find favorite game and genre objects
+  const favoriteGame = popularBoardGames.find(game => game.id === profile?.favoriteGameId);
+  const favoriteGenre = boardGameGenres.find(genre => genre.id === profile?.favoriteGenreId);
 
   if (authLoading || loading) {
     return (
@@ -249,6 +265,22 @@ export default function Profile() {
                   onChange={setEditedLocation}
                 />
                 <p className="text-xs text-gray-500 mt-1">This will be used as the default location for your listings</p>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Favorite Board Game</label>
+                <BoardGameDropdown
+                  selectedGameId={editedFavoriteGameId}
+                  onChange={setEditedFavoriteGameId}
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Favorite Game Genre</label>
+                <GenreDropdown
+                  selectedGenreId={editedFavoriteGenreId}
+                  onChange={setEditedFavoriteGenreId}
+                />
               </div>
               
               <div className="mb-4">
@@ -345,6 +377,22 @@ export default function Profile() {
                 </div>
                 
                 <div className="mb-4">
+                  <label className="block text-gray-700 font-medium mb-2">Favorite Board Game</label>
+                  <BoardGameDropdown
+                    selectedGameId={editedFavoriteGameId}
+                    onChange={setEditedFavoriteGameId}
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-medium mb-2">Favorite Game Genre</label>
+                  <GenreDropdown
+                    selectedGenreId={editedFavoriteGenreId}
+                    onChange={setEditedFavoriteGenreId}
+                  />
+                </div>
+                
+                <div className="mb-4">
                   <label className="block text-gray-700 font-medium mb-2">Bio</label>
                   <textarea
                     value={editedBio}
@@ -391,6 +439,16 @@ export default function Profile() {
                 <div className="mt-2">
                   <span className="font-medium">Listings: </span>
                   <span>{profile?.postCount || 0}</span>
+                </div>
+                
+                <div className="mt-2">
+                  <span className="font-medium">Favorite Game: </span>
+                  <span>{favoriteGame?.name || 'Not specified'}</span>
+                </div>
+                
+                <div className="mt-2">
+                  <span className="font-medium">Favorite Genre: </span>
+                  <span>{favoriteGenre?.name || 'Not specified'}</span>
                 </div>
                 
                 <div className="mt-4">

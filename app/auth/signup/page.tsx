@@ -4,20 +4,23 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import Navbar from '@/components/Navbar';
+import LocationDropdown from '@/components/LocationDropdown';
+import BoardGameDropdown from '@/components/BoardGameDropdown';
+import GenreDropdown from '@/components/GenreDropdown';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
+  const [favoriteGameId, setFavoriteGameId] = useState('');
+  const [favoriteGenreId, setFavoriteGenreId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  const { signUp, user } = useAuth();
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,20 +28,14 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      // Sign up the user
-      await signUp(email, password);
-      
-      // Once signed up, create a user profile in Firestore
-      if (user) {
-        await setDoc(doc(db, 'users', user.uid), {
-          name,
-          email,
-          location,
-          joinedDate: new Date().toISOString(),
-          bio: '',
-          avatar: '/user-placeholder.jpg'
-        });
-      }
+      // Sign up the user with profile data
+      await signUp(email, password, {
+        email,
+        name,
+        location,
+        favoriteGameId,
+        favoriteGenreId
+      });
       
       router.push('/profile');
     } catch (error: unknown) {
@@ -96,14 +93,29 @@ export default function SignUp() {
               <label htmlFor="location" className="block text-gray-700 font-medium mb-2">
                 Location
               </label>
-              <input
-                type="text"
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="City, State"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                required
+              <LocationDropdown
+                selectedLocation={location}
+                onChange={setLocation}
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="favoriteGame" className="block text-gray-700 font-medium mb-2">
+                Favorite Board Game <span className="text-gray-500 text-sm">(Optional)</span>
+              </label>
+              <BoardGameDropdown
+                selectedGameId={favoriteGameId}
+                onChange={setFavoriteGameId}
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="favoriteGenre" className="block text-gray-700 font-medium mb-2">
+                Favorite Game Genre <span className="text-gray-500 text-sm">(Optional)</span>
+              </label>
+              <GenreDropdown
+                selectedGenreId={favoriteGenreId}
+                onChange={setFavoriteGenreId}
               />
             </div>
             

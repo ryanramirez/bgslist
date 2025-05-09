@@ -179,7 +179,9 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
       type: data.type || 'offering',
       userId: data.userId,
       tradeOnly: !!data.tradeOnly,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      starCount: 0,
+      starredBy: []
     };
     
     // Only include imageUrl if it exists in the data
@@ -213,7 +215,28 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
 
 export const updateGameListing = async (listingId: string, data: Partial<GameListing>): Promise<boolean> => {
   try {
-    await updateDoc(doc(db, 'gameListings', listingId), data);
+    // First, get the existing listing to preserve star data if not provided
+    const listingRef = doc(db, 'gameListings', listingId);
+    const existingListing = await getDoc(listingRef);
+    
+    if (!existingListing.exists()) {
+      console.error('Listing not found for update:', listingId);
+      return false;
+    }
+    
+    // Extract existing star data
+    const existingData = existingListing.data();
+    const starCount = existingData.starCount || 0;
+    const starredBy = existingData.starredBy || [];
+    
+    // Only override star data if explicitly provided in update
+    const updateData = {
+      ...data,
+      starCount: data.starCount !== undefined ? data.starCount : starCount,
+      starredBy: data.starredBy !== undefined ? data.starredBy : starredBy,
+    };
+    
+    await updateDoc(listingRef, updateData);
     return true;
   } catch (error) {
     console.error('Error updating game listing:', error);
@@ -317,5 +340,91 @@ export const getAllListings = async (type: 'offering' | 'selling' | 'wanting'): 
   } catch (error) {
     console.error('Error getting listings:', error);
     return [];
+  }
+};
+
+// Star/Unstar functions
+export const starGameListing = async (listingId: string, userId: string): Promise<boolean> => {
+  try {
+    console.log(`User ${userId} starring listing ${listingId}`);
+    
+    // Get the current listing to check if it's already starred
+    const listingDoc = await getDoc(doc(db, 'gameListings', listingId));
+    if (!listingDoc.exists()) {
+      console.error('Listing not found');
+      return false;
+    }
+    
+    const listingData = listingDoc.data();
+    const starredBy = listingData.starredBy || [];
+    
+    // If already starred, don't process again
+    if (starredBy.includes(userId)) {
+      console.log('User already starred this listing');
+      return true;
+    }
+    
+    // Add user to starredBy array and increment count
+    await updateDoc(doc(db, 'gameListings', listingId), {
+      starredBy: [...starredBy, userId],
+      starCount: increment(1)
+    });
+    
+    console.log('Listing starred successfully');
+    return true;
+  } catch (error) {
+    console.error('Error starring game listing:', error);
+    return false;
+  }
+};
+
+export const unstarGameListing = async (listingId: string, userId: string): Promise<boolean> => {
+  try {
+    console.log(`User ${userId} unstarring listing ${listingId}`);
+    
+    // Get the current listing to check if it's starred
+    const listingDoc = await getDoc(doc(db, 'gameListings', listingId));
+    if (!listingDoc.exists()) {
+      console.error('Listing not found');
+      return false;
+    }
+    
+    const listingData = listingDoc.data();
+    const starredBy = listingData.starredBy || [];
+    
+    // If not starred, don't process
+    if (!starredBy.includes(userId)) {
+      console.log('User had not starred this listing');
+      return true;
+    }
+    
+    // Remove user from starredBy array and decrement count
+    await updateDoc(doc(db, 'gameListings', listingId), {
+      starredBy: starredBy.filter((id: string) => id !== userId),
+      starCount: increment(-1)
+    });
+    
+    console.log('Listing unstarred successfully');
+    return true;
+  } catch (error) {
+    console.error('Error unstarring game listing:', error);
+    return false;
+  }
+};
+
+export const hasUserStarredListing = async (listingId: string, userId: string): Promise<boolean> => {
+  try {
+    if (!userId) return false;
+    
+    const listingDoc = await getDoc(doc(db, 'gameListings', listingId));
+    if (!listingDoc.exists()) return false;
+    
+    const listingData = listingDoc.data();
+    const starredBy = listingData.starredBy || [];
+    
+    return starredBy.includes(userId);
+  } catch (error) {
+    console.error('Error checking if user starred listing:', error);
+    return false;
   }
 }; 

@@ -26,6 +26,8 @@ export interface GameListing {
   location: string;
   createdAt: string;
   type: 'offering' | 'selling' | 'wanting';
+  starCount?: number; // Number of users who have starred this listing
+  starredBy?: string[]; // Array of user IDs who have starred this listing
 }
 
 // Game condition options

@@ -165,8 +165,8 @@ export default function ListingDetail() {
   }
   
   const hasImages = listing.imageUrls && listing.imageUrls.length > 0;
-  const currentImage = hasImages ? listing.imageUrls[currentImageIndex] : null;
-  const hasMultipleImages = hasImages && listing.imageUrls.length > 1;
+  const currentImage = hasImages && listing.imageUrls ? listing.imageUrls[currentImageIndex] : null;
+  const hasMultipleImages = hasImages && listing.imageUrls && listing.imageUrls.length > 1;
   const isSelling = listing.type === 'selling';
   const showPrice = isSelling && !listing.tradeOnly;
   
@@ -192,12 +192,14 @@ export default function ListingDetail() {
             {hasImages ? (
               <div className="relative">
                 <div className="w-full h-96 relative">
-                  <Image 
-                    src={currentImage!}
-                    alt={listing.title}
-                    fill
-                    className="object-contain"
-                  />
+                  {currentImage && (
+                    <Image 
+                      src={currentImage}
+                      alt={listing.title}
+                      fill
+                      className="object-contain"
+                    />
+                  )}
                   
                   {/* Type and price badges */}
                   <div className="absolute top-4 right-4 flex flex-col gap-2">
@@ -241,7 +243,7 @@ export default function ListingDetail() {
                 </div>
                 
                 {/* Thumbnail navigation */}
-                {hasMultipleImages && (
+                {hasMultipleImages && listing.imageUrls && (
                   <div className="flex overflow-x-auto py-2 gap-2 px-4 pb-4">
                     {listing.imageUrls.map((url, index) => (
                       <button

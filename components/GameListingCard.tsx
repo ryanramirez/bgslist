@@ -32,6 +32,11 @@ export default function GameListingCard({
   const [isStarred, setIsStarred] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
+  // Truncate description to 30 characters
+  const truncatedDescription = description.length > 30 
+    ? `${description.substring(0, 30)}...` 
+    : description;
+
   // Check if the user has starred this listing
   useEffect(() => {
     const checkStarredStatus = async () => {
@@ -159,7 +164,7 @@ export default function GameListingCard({
             </button>
           </div>
           
-          <p className="text-gray-600 mt-1">{description}</p>
+          <p className="text-gray-600 mt-1">{truncatedDescription}</p>
           
           <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
             <span>{timeAgo}</span>

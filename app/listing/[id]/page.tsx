@@ -170,16 +170,9 @@ export default function ListingDetail() {
   const isSelling = listing.type === 'selling';
   const showPrice = isSelling && !listing.tradeOnly;
   
-  // Determine the active navbar tab based on listing type
-  const activeNavTab = listing.type === 'offering' 
-    ? 'offering' 
-    : listing.type === 'wanting' 
-      ? 'looking' 
-      : 'selling';
-  
   return (
     <main className="min-h-screen bg-gray-100">
-      <Navbar activePage={activeNavTab} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">

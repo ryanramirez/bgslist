@@ -92,8 +92,23 @@ export default function GameListingCard({
   // Show trade badge for trade-only listings
   const showTradeBadge = tradeOnly;
 
+  // Save the active tab to sessionStorage before navigation
+  const handleCardClick = () => {
+    if (typeof window !== 'undefined') {
+      // Map the listing type to the correct tab name
+      const activeNavTab = type === 'offering' 
+        ? 'offering' 
+        : type === 'wanting' 
+          ? 'looking' 
+          : 'selling';
+      
+      // Store in sessionStorage
+      sessionStorage.setItem('lastActiveTab', activeNavTab);
+    }
+  };
+
   return (
-    <Link href={`/listing/${listingId}`}>
+    <Link href={`/listing/${listingId}`} onClick={handleCardClick}>
       <div className="bg-white rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer">
         <div className="relative h-48 w-full">
           {hasImage ? (

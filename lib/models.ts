@@ -17,12 +17,14 @@ export interface UserProfile {
 export interface GameListing {
   id: string;
   userId: string;
+  userEmail?: string; // Email address of the listing creator
   title: string;
   description: string;
   condition: string;
   price?: number; // Optional for trade-only listings
   tradeOnly: boolean;
-  imageUrl?: string; // Optional for listings without images
+  imageUrls?: string[]; // Array of image URLs (optional)
+  boardGameId?: string; // Optional reference to a board game
   location: string;
   createdAt: string;
   type: 'offering' | 'selling' | 'wanting';

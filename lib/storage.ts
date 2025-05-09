@@ -58,6 +58,27 @@ export const uploadGameImage = async (file: File, userId: string): Promise<strin
 };
 
 /**
+ * Uploads multiple game images to Firebase Storage
+ * @param files Array of files to upload
+ * @param userId The ID of the user uploading the images
+ * @returns Promise with an array of download URLs of the uploaded files
+ */
+export const uploadGameImages = async (files: File[], userId: string): Promise<string[]> => {
+  console.log(`Starting upload of ${files.length} images for user ${userId}`);
+  
+  try {
+    const uploadPromises = files.map(file => uploadGameImage(file, userId));
+    const urls = await Promise.all(uploadPromises);
+    
+    console.log(`Successfully uploaded ${urls.length} images`);
+    return urls;
+  } catch (error) {
+    console.error('Error uploading multiple images:', error);
+    throw error;
+  }
+};
+
+/**
  * Uploads a user profile image to Firebase Storage
  * @param file The file to upload
  * @param userId The ID of the user uploading the image

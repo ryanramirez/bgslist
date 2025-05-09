@@ -178,15 +178,16 @@ export const createGameListing = async (data: Omit<GameListing, 'id' | 'createdA
       location: data.location || 'Unknown location',
       type: data.type || 'offering',
       userId: data.userId,
+      userEmail: data.userEmail || '',
       tradeOnly: !!data.tradeOnly,
       createdAt: serverTimestamp(),
       starCount: 0,
       starredBy: []
     };
     
-    // Only include imageUrl if it exists in the data
-    if ('imageUrl' in data && data.imageUrl) {
-      cleanedData.imageUrl = data.imageUrl;
+    // Only include imageUrls if it exists in the data
+    if ('imageUrls' in data && data.imageUrls && data.imageUrls.length > 0) {
+      cleanedData.imageUrls = data.imageUrls;
     }
     
     console.log('Cleaned game listing data:', cleanedData);

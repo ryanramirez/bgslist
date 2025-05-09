@@ -6,17 +6,20 @@ import { popularBoardGames, BoardGame } from '@/lib/boardGames';
 interface BoardGameDropdownProps {
   selectedGameId: string;
   onChange: (gameId: string) => void;
+  onCustomGameCreate?: (gameName: string) => void;
   className?: string;
 }
 
 export default function BoardGameDropdown({ 
   selectedGameId, 
   onChange,
+  onCustomGameCreate,
   className = ''
 }: BoardGameDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredGames, setFilteredGames] = useState(popularBoardGames);
+  const [customGameName, setCustomGameName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedGame = popularBoardGames.find(game => game.id === selectedGameId);
 
@@ -46,6 +49,8 @@ export default function BoardGameDropdown({
       );
       setFilteredGames(filtered);
     }
+    // Update custom game name
+    setCustomGameName(searchTerm.trim());
   }, [searchTerm]);
 
   const handleSelectGame = (game: BoardGame) => {
@@ -58,6 +63,27 @@ export default function BoardGameDropdown({
     onChange('');
     setIsOpen(false);
     setSearchTerm('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && customGameName) {
+      e.preventDefault();
+      
+      // Check if the entered game name matches any existing game
+      const existingGame = popularBoardGames.find(
+        game => game.name.toLowerCase() === customGameName.toLowerCase()
+      );
+      
+      if (existingGame) {
+        // If game exists, select it
+        handleSelectGame(existingGame);
+      } else if (onCustomGameCreate) {
+        // If it's a custom game, call the callback
+        onCustomGameCreate(customGameName);
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    }
   };
 
   return (
@@ -82,7 +108,7 @@ export default function BoardGameDropdown({
             </button>
           </div>
         ) : (
-          <span className="text-gray-500">Select your favorite board game...</span>
+          <span className="text-gray-500">Select board game...</span>
         )}
       </div>
       
@@ -93,7 +119,8 @@ export default function BoardGameDropdown({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search games..."
+              onKeyDown={handleKeyDown}
+              placeholder="Search or enter custom game name and press Enter"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
               onClick={(e) => e.stopPropagation()}
               autoFocus
@@ -105,8 +132,28 @@ export default function BoardGameDropdown({
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={handleClearSelection}
             >
-              No favorite game selected
+              No game selected
             </button>
+            
+            {customGameName && filteredGames.length === 0 && (
+              <button
+                className="w-full text-left px-4 py-2 text-sm bg-green-50 text-green-800 hover:bg-green-100"
+                onClick={() => {
+                  if (onCustomGameCreate) {
+                    onCustomGameCreate(customGameName);
+                    setIsOpen(false);
+                    setSearchTerm('');
+                  }
+                }}
+              >
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Add custom: "{customGameName}"</span>
+                </div>
+              </button>
+            )}
             
             {filteredGames.length > 0 ? (
               filteredGames.map((game) => (
@@ -128,7 +175,7 @@ export default function BoardGameDropdown({
                 </button>
               ))
             ) : (
-              <div className="px-4 py-2 text-sm text-gray-500">No games found</div>
+              !customGameName && <div className="px-4 py-2 text-sm text-gray-500">No games found</div>
             )}
           </div>
         </div>

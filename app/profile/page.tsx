@@ -481,9 +481,12 @@ export default function Profile() {
                 userId={user?.uid}
                 title={game.title}
                 description={game.description}
-                imageUrl={game.imageUrl}
+                imageUrl={game.imageUrls && game.imageUrls.length > 0 ? game.imageUrls[0] : undefined}
                 timeAgo={getTimeAgo(game.createdAt)}
                 location={game.location}
+                price={game.price}
+                tradeOnly={game.tradeOnly}
+                type={game.type}
               />
             ))}
           </div>

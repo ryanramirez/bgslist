@@ -9,7 +9,7 @@ import ImageUpload from '@/components/ImageUpload';
 import LocationDropdown from '@/components/LocationDropdown';
 import BoardGameDropdown from '@/components/BoardGameDropdown';
 import { createGameListing } from '@/lib/firestore';
-import { uploadGameImage } from '@/lib/storage';
+import { uploadGameImages } from '@/lib/storage';
 import { getUserProfile } from '@/lib/firestore';
 import { conditionOptions, GameListing } from '@/lib/models';
 import { popularBoardGames } from '@/lib/boardGames';
@@ -21,29 +21,31 @@ export default function CreateListing() {
   
   const [title, setTitle] = useState('');
   const [selectedGameId, setSelectedGameId] = useState('');
-  const [useCustomTitle, setUseCustomTitle] = useState(false);
+  const [customGameName, setCustomGameName] = useState('');
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('likeNew');
   const [price, setPrice] = useState('');
   const [tradeOnly, setTradeOnly] = useState(false);
   const [type, setType] = useState<'offering' | 'selling' | 'wanting'>('offering');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [userLocation, setUserLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [debug, setDebug] = useState<string[]>([]);
 
-  // When a game is selected, set the title
-  useEffect(() => {
-    if (selectedGameId && !useCustomTitle) {
-      const selectedGame = popularBoardGames.find(game => game.id === selectedGameId);
-      if (selectedGame) {
-        setTitle(selectedGame.name);
-        addDebug(`Auto-filled title from selected game: ${selectedGame.name}`);
-      }
-    }
-  }, [selectedGameId, useCustomTitle]);
+  // Board game selection helper
+  const handleBoardGameChange = (gameId: string) => {
+    setSelectedGameId(gameId);
+    setCustomGameName(''); // Clear custom game when selecting from dropdown
+    addDebug(`Selected board game ID: ${gameId}`);
+  };
+  
+  // Custom game creation helper
+  const handleCustomGameCreate = (gameName: string) => {
+    setSelectedGameId(''); // Clear selected ID since this is a custom game
+    setCustomGameName(gameName);
+    addDebug(`Created custom game: ${gameName}`);
+  };
 
   // Redirect if not logged in
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function CreateListing() {
     }
   }, [loading, user, router]);
 
-  // Get user location
+  // Get user location and email
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
@@ -82,30 +84,9 @@ export default function CreateListing() {
     setDebug(prev => [...prev, message]);
   };
 
-  const handleImageChange = (file: File) => {
-    setImageFile(file);
-    // Create a temporary object URL for preview
-    const objectUrl = URL.createObjectURL(file);
-    setImageUrl(objectUrl);
-    addDebug(`Image selected: ${file.name}, size: ${Math.round(file.size / 1024)}KB`);
-  };
-
-  const handleCustomTitleToggle = () => {
-    setUseCustomTitle(!useCustomTitle);
-    if (!useCustomTitle) {
-      // If switching to custom title, keep the currently selected game name
-      // This gives a better UX when the user wants to slightly modify a game name
-      addDebug('Switched to custom title input');
-    } else {
-      // If switching back to dropdown, update title from selected game
-      if (selectedGameId) {
-        const selectedGame = popularBoardGames.find(game => game.id === selectedGameId);
-        if (selectedGame) {
-          setTitle(selectedGame.name);
-          addDebug(`Reverted to selected game title: ${selectedGame.name}`);
-        }
-      }
-    }
+  const handleImagesChange = (files: File[]) => {
+    setImageFiles(files);
+    addDebug(`${files.length} images selected`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,26 +102,26 @@ export default function CreateListing() {
     addDebug('Starting submission process...');
     
     try {
-      // Upload image if one was selected
-      let finalImageUrl = null;
-      if (imageFile) {
-        addDebug(`Uploading image: ${imageFile.name}, size: ${Math.round(imageFile.size / 1024)}KB`);
+      // Upload images if any were selected
+      let finalImageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        addDebug(`Uploading ${imageFiles.length} images`);
         try {
-          console.log('Starting image upload to Firebase Storage...');
-          finalImageUrl = await uploadGameImage(imageFile, user.uid);
-          console.log('Image upload completed. URL:', finalImageUrl);
-          addDebug(`Image uploaded successfully: ${finalImageUrl}`);
+          console.log('Starting image uploads to Firebase Storage...');
+          finalImageUrls = await uploadGameImages(imageFiles, user.uid);
+          console.log('Image uploads completed. URLs:', finalImageUrls);
+          addDebug(`${finalImageUrls.length} images uploaded successfully`);
         } catch (uploadError) {
-          console.error('Error uploading image:', uploadError);
+          console.error('Error uploading images:', uploadError);
           console.error('Error details:', JSON.stringify(uploadError, null, 2));
           addDebug(`Image upload failed: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
-          setError('Failed to upload image. Please try again.');
+          setError('Failed to upload images. Please try again.');
           setIsSubmitting(false);
           return;
         }
       } else {
-        console.log('No image file selected');
-        addDebug('No image file selected');
+        console.log('No image files selected');
+        addDebug('No image files selected');
       }
       
       // Ensure location is set
@@ -148,11 +129,12 @@ export default function CreateListing() {
       
       // Create base listing data
       type ListingDataType = Omit<GameListing, 'id' | 'createdAt'>;
-      type BaseListingDataType = Omit<ListingDataType, 'price' | 'imageUrl'>;
+      type BaseListingDataType = Omit<ListingDataType, 'price' | 'imageUrls'>;
       
       // Start with required fields
       const baseListingData: BaseListingDataType = {
         userId: user.uid,
+        userEmail: user.email || '',
         title,
         description,
         condition,
@@ -161,9 +143,16 @@ export default function CreateListing() {
         type
       };
       
-      // Add imageUrl only if we have one
-      if (finalImageUrl) {
-        Object.assign(baseListingData, { imageUrl: finalImageUrl });
+      // Add board game ID if selected or custom name if provided
+      if (selectedGameId) {
+        baseListingData.boardGameId = selectedGameId;
+      } else if (customGameName) {
+        baseListingData.boardGameId = `custom:${customGameName}`;
+      }
+      
+      // Add imageUrls only if we have any
+      if (finalImageUrls.length > 0) {
+        Object.assign(baseListingData, { imageUrls: finalImageUrls });
       }
       
       // Create final listing data with or without price
@@ -176,8 +165,6 @@ export default function CreateListing() {
       
       if (listingId) {
         addDebug(`Listing created successfully! ID: ${listingId}`);
-        
-        // Note: createGameListing now handles incrementing post count and VPs
         
         // Refresh VP data to update navbar
         refreshVPs();
@@ -235,15 +222,15 @@ export default function CreateListing() {
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <label className="block text-gray-700 font-medium mb-2">
-                Game Image
+                Game Images
               </label>
               <ImageUpload
-                initialImage={imageUrl || undefined}
-                onImageChange={handleImageChange}
+                onImagesChange={handleImagesChange}
                 className="mb-2"
+                maxImages={5}
               />
               <p className="text-xs text-gray-500">
-                Upload a clear image of the game. Better photos get more interest!
+                Upload clear images of the game. Better photos get more interest! (Up to 5 images)
               </p>
             </div>
             
@@ -287,37 +274,47 @@ export default function CreateListing() {
             
             <div className="mb-4">
               <label htmlFor="title" className="block text-gray-700 font-medium mb-2">
-                Game Title
+                Title
               </label>
-              
-              <div className="mb-2">
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={useCustomTitle}
-                    onChange={handleCustomTitleToggle}
-                    className="form-checkbox text-amber-500"
-                  />
-                  <span className="ml-2 text-sm">Use custom title</span>
-                </label>
-              </div>
-              
-              {useCustomTitle ? (
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  required
-                  placeholder="Enter custom game title"
-                />
-              ) : (
-                <BoardGameDropdown
-                  selectedGameId={selectedGameId}
-                  onChange={setSelectedGameId}
-                  className="mb-2"
-                />
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+                placeholder="Enter listing title"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Board Game (Optional)
+              </label>
+              <BoardGameDropdown
+                selectedGameId={selectedGameId}
+                onChange={handleBoardGameChange}
+                onCustomGameCreate={handleCustomGameCreate}
+                className="mb-2"
+              />
+              {customGameName && (
+                <div className="mt-2 p-2 bg-green-50 text-green-800 rounded-md">
+                  <div className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Using custom game: <strong>{customGameName}</strong></span>
+                    <button 
+                      type="button" 
+                      onClick={() => setCustomGameName('')}
+                      className="ml-auto text-green-600 hover:text-green-800"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
             
@@ -364,35 +361,35 @@ export default function CreateListing() {
             </div>
             
             {type === 'selling' && (
-              <div className="mb-4">
-                <label htmlFor="price" className="block text-gray-700 font-medium mb-2">
-                  Price ($)
-                </label>
-                <input
-                  type="number"
-                  id="price"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  required={type === 'selling' && !tradeOnly}
-                />
-              </div>
-            )}
-            
-            {(type === 'offering' || type === 'selling') && (
-              <div className="mb-6">
-                <label className="inline-flex items-center">
+              <>
+                <div className="mb-4">
+                  <label htmlFor="price" className="block text-gray-700 font-medium mb-2">
+                    Price ($)
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={tradeOnly}
-                    onChange={(e) => setTradeOnly(e.target.checked)}
-                    className="form-checkbox text-amber-500"
+                    type="number"
+                    id="price"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    required={type === 'selling' && !tradeOnly}
                   />
-                  <span className="ml-2">Trade Only (No Cash)</span>
-                </label>
-              </div>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={tradeOnly}
+                      onChange={(e) => setTradeOnly(e.target.checked)}
+                      className="form-checkbox text-amber-500"
+                    />
+                    <span className="ml-2">Trades welcome</span>
+                  </label>
+                </div>
+              </>
             )}
             
             <div className="mt-6">

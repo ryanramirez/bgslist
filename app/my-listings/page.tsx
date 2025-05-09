@@ -168,11 +168,11 @@ export default function MyListings() {
                   <tr key={listing.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {listing.imageUrl && (
+                        {listing.imageUrls && listing.imageUrls.length > 0 ? (
                           <div className="flex-shrink-0 h-10 w-10 mr-4 relative">
                             <Image 
                               className="rounded object-cover" 
-                              src={listing.imageUrl} 
+                              src={listing.imageUrls[0]} 
                               alt={listing.title}
                               fill
                               sizes="40px"
@@ -181,6 +181,23 @@ export default function MyListings() {
                                 target.src = "https://via.placeholder.com/40?text=BG";
                               }}
                             />
+                          </div>
+                        ) : (
+                          <div className="flex-shrink-0 h-10 w-10 mr-4 bg-gray-100 rounded flex items-center justify-center">
+                            <svg
+                              className="w-6 h-6 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
                           </div>
                         )}
                         <div>

@@ -16,6 +16,7 @@ import { getUserProfile, getUserListings, updateUserProfile, updateUserVPs } fro
 import { UserProfile, GameListing } from '@/lib/models';
 import { popularBoardGames } from '@/lib/boardGames';
 import { boardGameGenres } from '@/lib/boardGameGenres';
+import { getTimeAgo } from '@/lib/utils';
 
 export default function Profile() {
   const router = useRouter();
@@ -481,7 +482,7 @@ export default function Profile() {
                 title={game.title}
                 description={game.description}
                 imageUrl={game.imageUrl}
-                postedDaysAgo={getDaysAgo(game.createdAt)}
+                timeAgo={getTimeAgo(game.createdAt)}
                 location={game.location}
               />
             ))}
@@ -500,13 +501,4 @@ export default function Profile() {
       </div>
     </main>
   );
-}
-
-// Helper function to calculate days ago
-function getDaysAgo(dateString: string): number {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
 } 

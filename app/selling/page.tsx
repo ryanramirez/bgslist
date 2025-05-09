@@ -8,6 +8,7 @@ import GameListingCard from '@/components/GameListingCard';
 import { getAllListings } from '@/lib/firestore';
 import { GameListing } from '@/lib/models';
 import { useAuth } from '@/context/AuthContext';
+import { getTimeAgo } from '@/lib/utils';
 
 export default function Selling() {
   const { user } = useAuth();
@@ -78,7 +79,7 @@ export default function Selling() {
                 title={game.title}
                 description={game.description}
                 imageUrl={game.imageUrl}
-                postedDaysAgo={getDaysAgo(game.createdAt)}
+                timeAgo={getTimeAgo(game.createdAt)}
                 location={game.location}
               />
             ))}
@@ -98,13 +99,4 @@ export default function Selling() {
       </div>
     </main>
   );
-}
-
-// Helper function to calculate days ago
-function getDaysAgo(dateString: string): number {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays === 0 ? 1 : diffDays;
 } 

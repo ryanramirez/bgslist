@@ -8,7 +8,7 @@ type GameListingCardProps = {
   title: string;
   description: string;
   imageUrl?: string;
-  postedDaysAgo: number;
+  timeAgo: string;
   location: string;
 };
 
@@ -18,7 +18,7 @@ export default function GameListingCard({
   title, 
   description, 
   imageUrl, 
-  postedDaysAgo, 
+  timeAgo,
   location 
 }: GameListingCardProps) {
   const hasImage = imageUrl && imageUrl.trim() !== '';
@@ -126,7 +126,7 @@ export default function GameListingCard({
         <p className="text-gray-600 mt-1">{description}</p>
         
         <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-          <span>Posted {postedDaysAgo} days ago</span>
+          <span>{timeAgo}</span>
           <span>{location}</span>
         </div>
       </div>

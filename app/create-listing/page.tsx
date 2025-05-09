@@ -12,7 +12,6 @@ import { createGameListing } from '@/lib/firestore';
 import { uploadGameImages } from '@/lib/storage';
 import { getUserProfile } from '@/lib/firestore';
 import { conditionOptions, GameListing } from '@/lib/models';
-import { popularBoardGames } from '@/lib/boardGames';
 
 export default function CreateListing() {
   const router = useRouter();

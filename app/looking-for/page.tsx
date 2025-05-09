@@ -38,10 +38,19 @@ export default function LookingFor() {
 
     fetchListings();
     
-    // Set up a focus event listener to refresh data when the page regains focus
+    // Set up a focus event listener to refresh data when the page regains focus,
+    // but only if enough time has passed since the last refresh
     const handleFocus = () => {
-      console.log('Page regained focus, refreshing data');
-      setLastLoaded(Date.now());
+      const now = Date.now();
+      const timeSinceLastLoad = now - lastLoaded;
+      const minRefreshInterval = 30 * 1000; // 30 seconds in milliseconds
+      
+      if (timeSinceLastLoad > minRefreshInterval) {
+        console.log('Page regained focus, refreshing data');
+        setLastLoaded(now);
+      } else {
+        console.log('Page regained focus, but skipping refresh (too soon)');
+      }
     };
     
     window.addEventListener('focus', handleFocus);
